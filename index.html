@@ -245,7 +245,13 @@
       transition: background 0.12s;
     }
     .trow:active { background: rgba(255,255,255,0.05); }
-    .trow-covered { min-height: 0 !important; height: 0 !important; overflow: hidden; padding: 0; border: none; }
+    .slots-wrap { position: relative; }
+    .bk-abs {
+      position: absolute;
+      left: 68px; right: 14px;
+      margin: 0; z-index: 2;
+      align-items: flex-start;
+    }
     .trow-t {
       width: 48px; flex-shrink: 0;
       font-size: 12px; font-weight: 700;
@@ -750,46 +756,39 @@ function buildDay() {
 
   let html = `<div class="dv-hdr">${lbl}</div>`;
 
+  /* ── שורות שעה תמיד מוצגות ── */
+  html += `<div class="slots-wrap">`;
   for (const tStr of SLOTS) {
-    const slotMin = toMin(tStr);
-
-    /* slot covered by a booking that started earlier → collapse it */
-    const covered = dayBks.some(b =>
-      toMin(b.start_time) < slotMin &&
+    const slotMin  = toMin(tStr);
+    const isFree   = !dayBks.some(b =>
+      toMin(b.start_time) <= slotMin &&
       toMin(b.start_time) + b.duration_minutes > slotMin
     );
-    if (covered) { html += `<div class="trow trow-covered"></div>`; continue; }
-
-    const hBks = dayBks.filter(b =>
-      toMin(b.start_time) >= slotMin && toMin(b.start_time) < slotMin + 30
-    );
-
-    html += `<div class="trow" onclick="${hBks.length ? '' : `openNew('${tStr}')`}">
+    html += `<div class="trow" onclick="${isFree ? `openNew('${tStr}')` : ''}">
       <div class="trow-t">${tStr}</div>
-      <div class="trow-body">`;
-
-    if (hBks.length) {
-      hBks.forEach(b => {
-        const c      = COLORS[b.user_name] || '#818cf8';
-        const end    = toTime(toMin(b.start_time) + b.duration_minutes);
-        const ph     = PHOTOS[b.user_name] || '';
-        const spanPx = Math.max(1, b.duration_minutes / 30) * 48 - 4;
-        html += `<div class="bk" style="--bc:${c}; min-height:${spanPx}px; align-items:flex-start"
-          onclick="event.stopPropagation();openEdit('${b.id}')">
-          ${ph ? `<img class="bk-avatar" src="${ph}" alt="${b.user_name}" loading="lazy" decoding="async" onerror="this.style.display='none'">` : ''}
-          <div class="bk-info">
-            <div class="bk-name">${b.user_name}</div>
-            <div class="bk-meta">${b.start_time.slice(0,5)} – ${end} · ${b.duration_minutes} דק׳</div>
-            ${b.note ? `<div class="bk-note">📝 ${b.note}</div>` : ''}
-          </div>
-        </div>`;
-      });
-    } else {
-      html += `<div class="trow-empty">לחץ להזמנה</div>`;
-    }
-
-    html += `</div></div>`;
+      <div class="trow-body">${isFree ? '<div class="trow-empty">לחץ להזמנה</div>' : ''}</div>
+    </div>`;
   }
+
+  /* ── כרטיסי הזמנה מרחפים מעל הגריד ── */
+  dayBks.forEach(b => {
+    const c          = COLORS[b.user_name] || '#818cf8';
+    const startMin   = toMin(b.start_time);
+    const end        = toTime(startMin + b.duration_minutes);
+    const ph         = PHOTOS[b.user_name] || '';
+    const topPx      = ((startMin - 360) / 30) * 48;
+    const heightPx   = (b.duration_minutes / 30) * 48 - 4;
+    html += `<div class="bk bk-abs" style="--bc:${c}; top:${topPx}px; height:${heightPx}px"
+      onclick="openEdit('${b.id}')">
+      ${ph ? `<img class="bk-avatar" src="${ph}" alt="${b.user_name}" loading="lazy" decoding="async" onerror="this.style.display='none'">` : ''}
+      <div class="bk-info">
+        <div class="bk-name">${b.user_name}</div>
+        <div class="bk-meta">${b.start_time.slice(0,5)} – ${end} · ${b.duration_minutes} דק׳</div>
+        ${b.note ? `<div class="bk-note">📝 ${b.note}</div>` : ''}
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
 
   document.getElementById('dayView').innerHTML = html;
 }
