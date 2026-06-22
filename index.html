@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0d0d12">
+  <title>Bismuth Gym 💪</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Arial Hebrew', sans-serif;
+      min-height: 100vh;
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    /* ══════════════════════════════
+       BACKGROUND
+    ══════════════════════════════ */
+    .bg {
+      position: fixed; inset: 0; z-index: 0;
+    }
+    .bg img {
+      width: 100%; height: 100%;
+      object-fit: cover; object-position: center 25%;
+    }
+    .bg img {
+      filter: saturate(1.15) contrast(1.05);
+    }
+    .bg::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        180deg,
+        rgba(0,0,0,0.48) 0%,
+        rgba(0,0,0,0.28) 40%,
+        rgba(0,0,0,0.52) 100%
+      );
+    }
+
+    /* ══════════════════════════════
+       PAGE WRAPPER
+    ══════════════════════════════ */
+    .page {
+      position: relative; z-index: 1;
+      max-width: 480px; margin: 0 auto;
+      min-height: 100vh; padding-bottom: 50px;
+    }
+
+    /* ══════════════════════════════
+       HEADER
+    ══════════════════════════════ */
+    .hdr {
+      padding: 18px 18px 16px;
+      display: flex; align-items: center; gap: 13px;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .hdr-logo {
+      font-size: 32px; line-height: 1;
+      filter: drop-shadow(0 0 10px rgba(168,85,247,0.6));
+    }
+    .hdr-title {
+      font-size: 26px; font-weight: 900; letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #f0abfc, #a5b4fc, #7dd3fc);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 1px 8px rgba(0,0,0,0.8));
+    }
+    .hdr-sub { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.75); margin-top: 2px; text-shadow: 0 1px 6px rgba(0,0,0,0.8); }
+
+    /* ══════════════════════════════
+       DEMO BANNER
+    ══════════════════════════════ */
+    .demo-bar {
+      display: none; align-items: center; gap: 7px;
+      padding: 9px 16px;
+      background: rgba(120,53,15,0.65);
+      border-bottom: 1px solid rgba(251,191,36,0.22);
+      font-size: 12px; color: #fcd34d;
+    }
+
+    /* ══════════════════════════════
+       USER SELECTOR — photo cards
+    ══════════════════════════════ */
+    .user-sec {
+      padding: 16px 16px 14px;
+      background: rgba(0,0,0,0.38);
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .sec-lbl {
+      font-size: 13px; font-weight: 800;
+      color: #ffffff;
+      text-transform: uppercase; letter-spacing: .12em;
+      margin-bottom: 14px;
+      text-shadow: 0 1px 10px rgba(0,0,0,0.9), 0 0 30px rgba(0,0,0,0.6);
+    }
+    .user-list {
+      display: flex; gap: 10px;
+      overflow-x: auto; scrollbar-width: none;
+      padding: 2px 0 4px;
+    }
+    .user-list::-webkit-scrollbar { display: none; }
+
+    .ucard {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 7px; flex-shrink: 0;
+      cursor: pointer; padding: 10px 10px 8px;
+      border-radius: 18px;
+      border: 1.5px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.04);
+      transition: all 0.2s ease;
+      min-width: 76px;
+    }
+    .ucard.sel {
+      border-color: var(--uc);
+      background: rgba(255,255,255,0.09);
+      box-shadow: 0 0 0 1px var(--uc), 0 4px 24px color-mix(in srgb, var(--uc) 40%, transparent);
+      transform: translateY(-2px);
+    }
+    .ucard:active { transform: scale(0.94); }
+
+    .ucard-ring {
+      width: 54px; height: 54px; border-radius: 50%;
+      overflow: hidden;
+      border: 2.5px solid rgba(255,255,255,0.1);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: rgba(255,255,255,0.08);
+    }
+    .ucard.sel .ucard-ring {
+      border-color: var(--uc);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--uc) 30%, transparent),
+                  0 0 18px color-mix(in srgb, var(--uc) 50%, transparent);
+    }
+    .ucard-img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+      filter: saturate(0.85) brightness(0.9);
+      transition: filter 0.2s;
+    }
+    .ucard.sel .ucard-img {
+      filter: saturate(1.2) brightness(1.05) contrast(1.05);
+    }
+    .ucard-name {
+      font-size: 13px; font-weight: 700;
+      color: rgba(255,255,255,0.9);
+      text-align: center; white-space: nowrap;
+      transition: color 0.2s;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+    }
+    .ucard.sel .ucard-name {
+      color: var(--uc);
+    }
+
+    /* ══════════════════════════════
+       WEEK NAVIGATION
+    ══════════════════════════════ */
+    .wnav {
+      direction: ltr;
+      padding: 12px 16px;
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(0,0,0,0.32);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .wnav-btn {
+      width: 38px; height: 38px; border-radius: 12px;
+      background: rgba(255,255,255,0.09);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff; font-size: 22px; line-height: 1;
+      cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .wnav-btn:active { background: rgba(255,255,255,0.18); transform: scale(0.93); }
+    .wnav-mid { flex: 1; text-align: center; }
+    .wnav-lbl { font-size: 16px; font-weight: 800; direction: rtl; color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,0.9); }
+    .wnav-today {
+      font-size: 12px; font-weight: 600; color: #a78bfa;
+      background: none; border: none; cursor: pointer;
+      margin-top: 3px; display: none;
+    }
+
+    /* ══════════════════════════════
+       DAY TABS
+    ══════════════════════════════ */
+    .dtabs {
+      direction: ltr;
+      display: flex;
+      background: rgba(0,0,0,0.28);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .dtabs::-webkit-scrollbar { display: none; }
+
+    .dtab {
+      flex: 1; min-width: 48px; padding: 10px 2px 8px;
+      text-align: center; cursor: pointer;
+      border: none; border-bottom: 3px solid transparent;
+      background: none; color: rgba(255,255,255,0.65);
+      transition: all 0.18s;
+    }
+    .dtab.active { color: #fff; border-bottom-color: #818cf8; }
+    .dtab-n { font-size: 18px; font-weight: 800; display: block; line-height: 1.2; text-shadow: 0 1px 6px rgba(0,0,0,0.9); }
+    .dtab-d { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7); letter-spacing:.03em; text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
+    .dtab.istoday .dtab-n {
+      background: linear-gradient(135deg, #818cf8, #e879f9);
+      color: #fff;
+      width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto; font-size: 14px;
+      box-shadow: 0 0 14px rgba(129,140,248,0.6);
+    }
+    .dtab.hasbk .dtab-d::after {
+      content: ' ●'; color: #38bdf8; font-size: 8px;
+    }
+
+    /* ══════════════════════════════
+       DAY VIEW HEADER
+    ══════════════════════════════ */
+    .dv-hdr {
+      padding: 13px 18px 7px;
+      font-size: 14px; font-weight: 800;
+      color: #ffffff;
+      text-transform: uppercase; letter-spacing: .07em;
+      background: rgba(0,0,0,0.25);
+      text-shadow: 0 1px 8px rgba(0,0,0,0.95), 0 0 20px rgba(0,0,0,0.6);
+    }
+
+    /* ══════════════════════════════
+       TIME ROWS
+    ══════════════════════════════ */
+    .trow {
+      display: flex; align-items: flex-start;
+      padding: 0 14px 0 10px;
+      min-height: 56px;
+      border-bottom: 1px solid rgba(255,255,255,0.035);
+      cursor: pointer;
+      background: rgba(0,0,0,0.18);
+      transition: background 0.12s;
+    }
+    .trow:active { background: rgba(255,255,255,0.05); }
+    .trow-t {
+      width: 48px; flex-shrink: 0;
+      font-size: 12px; font-weight: 700;
+      color: rgba(255,255,255,0.75);
+      padding-top: 18px;
+      font-variant-numeric: tabular-nums;
+      direction: ltr; text-align: left;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.95);
+    }
+    .trow-body { flex: 1; padding: 8px 0 8px 10px; }
+    .trow-empty {
+      color: rgba(255,255,255,0.45);
+      font-size: 12px; font-weight: 500;
+      padding-top: 18px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    }
+
+    /* ══════════════════════════════
+       BOOKING CARDS — vibrant!
+    ══════════════════════════════ */
+    .bk {
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin: 3px 0;
+      display: flex; gap: 10px; align-items: center;
+      cursor: pointer;
+      transition: filter 0.15s, transform 0.1s;
+      border-right: 4px solid var(--bc, #818cf8);
+      background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--bc, #818cf8) 20%, rgba(0,0,0,0.0)),
+        color-mix(in srgb, var(--bc, #818cf8) 6%, rgba(0,0,0,0.0))
+      );
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-top: 1px solid color-mix(in srgb, var(--bc, #818cf8) 20%, transparent);
+    }
+    .bk:active { filter: brightness(1.18); transform: scale(0.98); }
+
+    .bk-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+      border: 2px solid var(--bc, #818cf8);
+      box-shadow: 0 0 10px color-mix(in srgb, var(--bc, #818cf8) 40%, transparent);
+    }
+    .bk-info { flex: 1; min-width: 0; }
+    .bk-name {
+      font-size: 14px; font-weight: 800;
+      color: var(--bc, #818cf8);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .bk-meta {
+      font-size: 12px; color: rgba(255,255,255,0.5);
+      margin-top: 2px; direction: ltr; text-align: right;
+    }
+    .bk-note {
+      font-size: 12px; color: rgba(255,255,255,0.38);
+      margin-top: 3px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ══════════════════════════════
+       ADD BUTTON
+    ══════════════════════════════ */
+    .add-btn {
+      display: block;
+      margin: 20px 16px;
+      width: calc(100% - 32px);
+      padding: 17px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #0ea5e9 100%);
+      color: #fff; font-size: 17px; font-weight: 800;
+      border: none; cursor: pointer;
+      box-shadow:
+        0 6px 30px rgba(124,58,237,0.5),
+        0 2px 8px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.15);
+      transition: filter 0.15s, transform 0.12s;
+      letter-spacing: 0.02em;
+    }
+    .add-btn:active { filter: brightness(1.1); transform: scale(0.97); }
+
+    /* ══════════════════════════════
+       MODAL OVERLAY
+    ══════════════════════════════ */
+    .overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      display: none; align-items: flex-end; justify-content: center;
+    }
+    .overlay.open { display: flex; }
+
+    /* ══════════════════════════════
+       MODAL SHEET
+    ══════════════════════════════ */
+    .modal {
+      width: 100%; max-width: 480px;
+      background: #13131a;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      border-radius: 26px 26px 0 0;
+      padding: 0 18px 44px;
+      max-height: 94vh; overflow-y: auto;
+    }
+    .m-handle {
+      width: 38px; height: 4px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px; margin: 14px auto 0;
+    }
+
+    /* colored accent stripe at top of modal */
+    .m-accent {
+      height: 4px;
+      border-radius: 2px;
+      margin: 10px 0 0;
+      background: linear-gradient(90deg, var(--ma, #7c3aed), transparent);
+      transition: background 0.3s;
+    }
+
+    .m-head {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 0 12px;
+    }
+    .m-title { font-size: 20px; font-weight: 900; }
+    .m-close {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(255,255,255,0.08); border: none;
+      color: rgba(255,255,255,0.55); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 15px;
+    }
+
+    /* ── Form elements ── */
+    .fg { margin-bottom: 18px; }
+    .fl {
+      font-size: 12px; font-weight: 800;
+      color: rgba(255,255,255,0.8);
+      text-transform: uppercase; letter-spacing: .12em;
+      margin-bottom: 9px; display: block;
+    }
+    .fi {
+      width: 100%; padding: 12px 14px;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 12px; color: #fff;
+      font-size: 15px; outline: none;
+      -webkit-appearance: none; appearance: none;
+      transition: border-color 0.15s;
+      direction: ltr;
+    }
+    .fi:focus { border-color: #818cf8; }
+    .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* ── Modal user picker (small circles) ── */
+    .m-users {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+    .mucard {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 5px; cursor: pointer;
+      padding: 8px 6px 6px;
+      border-radius: 14px;
+      border: 1.5px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.04);
+      transition: all 0.18s; min-width: 62px;
+    }
+    .mucard.sel {
+      border-color: var(--uc);
+      background: rgba(255,255,255,0.09);
+      box-shadow: 0 0 0 1px var(--uc), 0 2px 14px color-mix(in srgb, var(--uc) 35%, transparent);
+    }
+    .mucard-ring {
+      width: 44px; height: 44px; border-radius: 50%; overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.08);
+      transition: border-color 0.18s;
+      background: rgba(255,255,255,0.06);
+    }
+    .mucard.sel .mucard-ring { border-color: var(--uc); }
+    .mucard-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .mucard-name {
+      font-size: 12px; font-weight: 700;
+      color: rgba(255,255,255,0.85);
+      white-space: nowrap; transition: color 0.18s;
+    }
+    .mucard.sel .mucard-name { color: var(--uc); }
+
+    /* ── Duration buttons ── */
+    .dur-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+    .db {
+      padding: 12px 4px; text-align: center;
+      border-radius: 12px; font-size: 13px; font-weight: 700;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.5);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .db.on {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-color: #7c3aed; color: #fff;
+      box-shadow: 0 3px 14px rgba(124,58,237,0.4);
+    }
+    .cust-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+
+    .ends {
+      font-size: 20px; font-weight: 900;
+      color: rgba(255,255,255,0.7); direction: ltr;
+    }
+
+    /* ── Conflict ── */
+    .conflict {
+      padding: 12px 14px; border-radius: 12px;
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5; font-size: 13px; font-weight: 600;
+      margin-bottom: 14px; display: none; line-height: 1.5;
+    }
+
+    /* ── Action buttons ── */
+    .acts { display: flex; gap: 10px; margin-top: 10px; }
+    .btn-save {
+      flex: 1; padding: 16px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff; font-size: 16px; font-weight: 800;
+      border: none; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+      transition: filter 0.15s, transform 0.1s;
+    }
+    .btn-save:active { filter: brightness(1.12); transform: scale(0.97); }
+    .btn-save:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+    .btn-del {
+      padding: 16px 18px; border-radius: 14px;
+      background: rgba(239,68,68,0.1);
+      border: 1.5px solid rgba(239,68,68,0.3);
+      color: #f87171; font-size: 16px; font-weight: 700;
+      cursor: pointer; display: none;
+      transition: background 0.15s;
+    }
+    .btn-del:active { background: rgba(239,68,68,0.2); }
+
+    /* ══════════════════════════════
+       TOAST
+    ══════════════════════════════ */
+    .toast {
+      position: fixed; bottom: 30px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20,20,28,0.96);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #fff; padding: 12px 24px;
+      border-radius: 14px; font-size: 14px; font-weight: 600;
+      z-index: 300; opacity: 0; transition: opacity 0.22s;
+      pointer-events: none; white-space: nowrap;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    }
+    .toast.show { opacity: 1; }
+
+    input[type=date]::-webkit-calendar-picker-indicator,
+    input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<!-- ══ Background ══ -->
+<div class="bg">
+  <img src="IMG_2822.JPG" alt="Bismuth Gym" onerror="this.closest('.bg').style.background='linear-gradient(135deg,#1a0533 0%,#0d1117 100%)'">
+</div>
+
+<div class="page">
+
+  <!-- ══ Header ══ -->
+  <header class="hdr">
+    <div class="hdr-logo">💪</div>
+    <div>
+      <div class="hdr-title">Bismuth Gym</div>
+      <div class="hdr-sub">מתזמן האימונים המשפחתי</div>
+    </div>
+  </header>
+
+  <!-- ══ Demo banner ══ -->
+  <div class="demo-bar" id="demoBar">⚡ מצב תצוגה — הזמנות נשמרות רק במכשיר זה</div>
+
+  <!-- ══ User selector ══ -->
+  <section class="user-sec">
+    <div class="sec-lbl">מי מתאמן היום?</div>
+    <div class="user-list" id="userList"></div>
+  </section>
+
+  <!-- ══ Week nav ══ -->
+  <div class="wnav">
+    <button class="wnav-btn" onclick="shiftWeek(-1)">‹</button>
+    <div class="wnav-mid">
+      <div class="wnav-lbl" id="weekLbl">—</div>
+      <button class="wnav-today" id="todayBtn" onclick="goToday()">↩ חזרה להיום</button>
+    </div>
+    <button class="wnav-btn" onclick="shiftWeek(1)">›</button>
+  </div>
+
+  <!-- ══ Day tabs ══ -->
+  <div class="dtabs" id="dayTabs"></div>
+
+  <!-- ══ Day view ══ -->
+  <div id="dayView"></div>
+
+  <!-- ══ Book button ══ -->
+  <button class="add-btn" onclick="openNew()">+ הזמן אימון</button>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ════════════════════════════════════
+     BOOKING MODAL
+════════════════════════════════════ -->
+<div class="overlay" id="overlay" onclick="bgClick(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="m-handle"></div>
+    <div class="m-accent" id="mAccent"></div>
+
+    <div class="m-head">
+      <span class="m-title" id="mTitle">הזמנה חדשה</span>
+      <button class="m-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <!-- Who -->
+    <div class="fg">
+      <span class="fl">מי מתאמן?</span>
+      <div class="m-users" id="mUserCards"></div>
+    </div>
+
+    <!-- Date + Time -->
+    <div class="fg frow">
+      <div>
+        <span class="fl">תאריך</span>
+        <input class="fi" type="date" id="mDate" onchange="formChange()">
+      </div>
+      <div>
+        <span class="fl">שעת התחלה</span>
+        <input class="fi" type="time" id="mTime" onchange="formChange()">
+      </div>
+    </div>
+
+    <!-- Duration -->
+    <div class="fg">
+      <span class="fl">משך האימון</span>
+      <div class="dur-grid">
+        <button class="db" data-v="30" onclick="pickDur(30)">30 דק׳</button>
+        <button class="db" data-v="45" onclick="pickDur(45)">45 דק׳</button>
+        <button class="db on" data-v="60" onclick="pickDur(60)">60 דק׳</button>
+        <button class="db" data-v="90" onclick="pickDur(90)">90 דק׳</button>
+      </div>
+      <div class="cust-row">
+        <input class="fi" type="number" id="mCust" min="5" max="360"
+          placeholder="מותאם אישית" style="width:150px" oninput="custDur()">
+        <span style="font-size:13px;color:rgba(255,255,255,0.3)">דקות</span>
+      </div>
+    </div>
+
+    <!-- Ends at -->
+    <div class="fg">
+      <span class="fl">מסתיים ב</span>
+      <div class="ends" id="mEnds">—</div>
+    </div>
+
+    <!-- Note -->
+    <div class="fg">
+      <span class="fl">סוג אימון <span style="text-transform:none;color:rgba(255,255,255,0.25)">(רשות)</span></span>
+      <input class="fi" type="text" id="mNote" dir="rtl"
+        placeholder="רגליים, חזה, גב, קרדיו, גוף מלא…">
+    </div>
+
+    <!-- Conflict -->
+    <div class="conflict" id="mConflict"></div>
+
+    <!-- Actions -->
+    <div class="acts">
+      <button class="btn-del" id="mDel" onclick="doDelete()">מחק</button>
+      <button class="btn-save" id="mSave" onclick="doSave()">הזמן</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════ -->
+<script>
+/* ── CONFIG ── */
+const SUPABASE_URL = 'https://dufjcqtdkdpksutxrdoz.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1ZmpjcXRka2Rwa3N1dHhyZG96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMjEwMjMsImV4cCI6MjA5NzY5NzAyM30.hxwMENwQd8hny89VUK03g7Qq4ber0aVkaJh_wNPlHwE';
+
+/* ── משפחה ── */
+const USERS = ['סתיו', 'מאי', 'משה', 'יאן', 'אליס'];
+const COLORS = {
+  'סתיו': '#3b82f6',   /* כחול */
+  'מאי':  '#e879f9',   /* ורוד-סגול */
+  'משה':  '#10b981',   /* ירוק */
+  'יאן':  '#f97316',   /* כתום */
+  'אליס': '#f43f5e',   /* אדום-ורוד */
+};
+const PHOTOS = {
+  'סתיו': 'stav.png',
+  'מאי':  'may.png',
+  'משה':  'moshe.png',
+  'יאן':  'yan.png',
+  'אליס': 'alice.png',
+};
+
+const HOURS = Array.from({length:17}, (_,i) => 6 + i); /* 06:00–22:00 */
+
+/* ── מצב ── */
+let me       = '';
+let weekSun  = getSunday(new Date());
+let dayIdx   = new Date().getDay();   /* 0=ראשון … 6=שבת */
+let bookings = [];
+let editId   = null;
+let dur      = 60;
+let mMe      = '';
+let db       = null;
+const DEMO   = SUPABASE_URL === 'YOUR_SUPABASE_URL';
+
+/* ── אתחול ── */
+function boot() {
+  if (DEMO) {
+    document.getElementById('demoBar').style.display = 'flex';
+    loadLocal();
+  } else {
+    const {createClient} = supabase;
+    db = createClient(SUPABASE_URL, SUPABASE_KEY);
+    fetchDB();
+    db.channel('bk')
+      .on('postgres_changes', {event:'*', schema:'public', table:'bookings'}, fetchDB)
+      .subscribe();
+  }
+  buildUserCards('userList', false);
+  buildWeek();
+}
+
+/* ── נתונים ── */
+function loadLocal() {
+  try { bookings = JSON.parse(localStorage.getItem('bism_v1') || '[]'); } catch { bookings = []; }
+  buildWeek();
+}
+async function fetchDB() {
+  const {data} = await db.from('bookings').select('*').order('date').order('start_time');
+  if (data) bookings = data;
+  buildWeek();
+}
+
+/* ── כרטיסי משתמשים ── */
+function buildUserCards(containerId, isModal) {
+  const currentUser = isModal ? mMe : me;
+  document.getElementById(containerId).innerHTML = USERS.map(u => {
+    const c  = COLORS[u];
+    const ph = PHOTOS[u];
+    const sel = currentUser === u;
+    const fn  = isModal ? `pickMMe('${u}')` : `pickMe('${u}')`;
+    const cls = isModal ? 'mucard' : 'ucard';
+    const ringCls = isModal ? 'mucard-ring' : 'ucard-ring';
+    const imgCls  = isModal ? 'mucard-img' : 'ucard-img';
+    const nameCls = isModal ? 'mucard-name' : 'ucard-name';
+    return `<div class="${cls}${sel?' sel':''}" onclick="${fn}" style="--uc:${c}">
+      <div class="${ringCls}"><img class="${imgCls}" src="${ph}" alt="${u}" onerror="this.style.display='none'"></div>
+      <span class="${nameCls}">${u}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ── שבוע ── */
+function buildWeek() {
+  const days = wkDays(weekSun);
+  const todayStr = fmtD(new Date());
+  const isNow = days.some(d => fmtD(d) === todayStr);
+  const fmt = d => d.toLocaleDateString('he-IL', {month:'short', day:'numeric'});
+  document.getElementById('weekLbl').textContent = `${fmt(days[0])} – ${fmt(days[6])}`;
+  document.getElementById('todayBtn').style.display = isNow ? 'none' : 'block';
+
+  document.getElementById('dayTabs').innerHTML = days.map((d,i) => {
+    const ds   = fmtD(d);
+    const isTd = ds === todayStr;
+    const hasBk = bookings.some(b => b.date === ds);
+    const dName = d.toLocaleDateString('he-IL', {weekday:'short'});
+    return `<button class="dtab${i===dayIdx?' active':''}${isTd?' istoday':''}${hasBk?' hasbk':''}"
+      onclick="pickDay(${i})">
+      <span class="dtab-n">${d.getDate()}</span>
+      <span class="dtab-d">${dName}</span>
+    </button>`;
+  }).join('');
+
+  buildDay();
+}
+
+/* ── תצוגת יום ── */
+function buildDay() {
+  const days   = wkDays(weekSun);
+  const ds     = fmtD(days[dayIdx]);
+  const dayBks = bookings.filter(b => b.date === ds);
+  const lbl    = days[dayIdx].toLocaleDateString('he-IL',
+    {weekday:'long', month:'long', day:'numeric'});
+
+  let html = `<div class="dv-hdr">${lbl}</div>`;
+
+  for (const h of HOURS) {
+    const tStr = pad(h) + ':00';
+    const hBks = dayBks.filter(b =>
+      toMin(b.start_time) >= h*60 && toMin(b.start_time) < (h+1)*60
+    );
+
+    html += `<div class="trow" onclick="${hBks.length ? '' : `openNew('${tStr}')`}">
+      <div class="trow-t">${tStr}</div>
+      <div class="trow-body">`;
+
+    if (hBks.length) {
+      hBks.forEach(b => {
+        const c   = COLORS[b.user_name] || '#818cf8';
+        const end = toTime(toMin(b.start_time) + b.duration_minutes);
+        const ph  = PHOTOS[b.user_name] || '';
+        html += `<div class="bk" style="--bc:${c}"
+          onclick="event.stopPropagation();openEdit('${b.id}')">
+          ${ph ? `<img class="bk-avatar" src="${ph}" alt="${b.user_name}" onerror="this.style.display='none'">` : ''}
+          <div class="bk-info">
+            <div class="bk-name">${b.user_name}</div>
+            <div class="bk-meta">${b.start_time.slice(0,5)} – ${end} · ${b.duration_minutes} דק׳</div>
+            ${b.note ? `<div class="bk-note">📝 ${b.note}</div>` : ''}
+          </div>
+        </div>`;
+      });
+    } else {
+      html += `<div class="trow-empty">לחץ להזמנה</div>`;
+    }
+
+    html += `</div></div>`;
+  }
+
+  document.getElementById('dayView').innerHTML = html;
+}
+
+/* ── מודל הזמנה חדשה ── */
+function openNew(prefill) {
+  if (!me) { toast('🙋 קודם בחר/י את שמך!'); return; }
+  editId = null; mMe = me;
+  const days = wkDays(weekSun);
+  document.getElementById('mDate').value = fmtD(days[dayIdx]);
+  document.getElementById('mTime').value = prefill || '10:00';
+  document.getElementById('mNote').value = '';
+  document.getElementById('mTitle').textContent  = 'הזמנה חדשה';
+  document.getElementById('mSave').textContent   = 'הזמן 💪';
+  document.getElementById('mDel').style.display  = 'none';
+  document.getElementById('mSave').disabled      = false;
+  document.getElementById('mConflict').style.display = 'none';
+  dur = 60; syncDurBtns();
+  document.getElementById('mCust').value = '';
+  buildUserCards('mUserCards', true);
+  updateAccent();
+  formChange();
+  document.getElementById('overlay').classList.add('open');
+}
+
+/* ── מודל עריכה ── */
+function openEdit(id) {
+  const b = bookings.find(x => x.id === id);
+  if (!b) return;
+  editId = id; mMe = b.user_name;
+  document.getElementById('mDate').value = b.date;
+  document.getElementById('mTime').value = b.start_time.slice(0,5);
+  document.getElementById('mNote').value = b.note || '';
+  document.getElementById('mTitle').textContent = 'עריכת הזמנה';
+  document.getElementById('mSave').textContent  = 'שמור שינויים';
+  document.getElementById('mDel').style.display = 'block';
+  dur = b.duration_minutes;
+  document.getElementById('mCust').value = [30,45,60,90].includes(dur) ? '' : String(dur);
+  syncDurBtns();
+  buildUserCards('mUserCards', true);
+  updateAccent();
+  formChange();
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+function bgClick(e)   { if (e.target === document.getElementById('overlay')) closeModal(); }
+
+function updateAccent() {
+  const c = COLORS[mMe] || '#7c3aed';
+  document.getElementById('mAccent').style.background =
+    `linear-gradient(90deg, ${c}, transparent)`;
+}
+
+/* ── שינויי טופס ── */
+function formChange() {
+  const date = document.getElementById('mDate').value;
+  const time = document.getElementById('mTime').value;
+  if (!date || !time) return;
+  const clash = findClash(date, time, dur, editId);
+  const box = document.getElementById('mConflict');
+  const btn = document.getElementById('mSave');
+  if (clash) {
+    const end = toTime(toMin(clash.start_time) + clash.duration_minutes);
+    box.textContent = `⚠️ השעה תפוסה ע"י ${clash.user_name} (${clash.start_time.slice(0,5)}–${end})`;
+    box.style.display = 'block'; btn.disabled = true;
+  } else {
+    box.style.display = 'none'; btn.disabled = false;
+  }
+  document.getElementById('mEnds').textContent = toTime(toMin(time) + dur);
+}
+
+function pickDur(v) {
+  dur = v; syncDurBtns();
+  document.getElementById('mCust').value = ''; formChange();
+}
+function syncDurBtns() {
+  document.querySelectorAll('.db').forEach(b =>
+    b.classList.toggle('on', Number(b.dataset.v) === dur)
+  );
+}
+function custDur() {
+  const v = parseInt(document.getElementById('mCust').value);
+  if (!isNaN(v) && v >= 5) {
+    dur = v;
+    document.querySelectorAll('.db').forEach(b => b.classList.remove('on'));
+    formChange();
+  }
+}
+
+/* ── שמירה ── */
+async function doSave() {
+  const date       = document.getElementById('mDate').value;
+  const start_time = document.getElementById('mTime').value;
+  const note       = document.getElementById('mNote').value.trim();
+  if (!date || !start_time || !mMe) { toast('נא למלא את כל השדות'); return; }
+  if (findClash(date, start_time, dur, editId)) return;
+  const row = {user_name:mMe, date, start_time, duration_minutes:dur, note:note||null};
+  if (DEMO) {
+    if (editId) { bookings = bookings.map(b => b.id===editId ? {...b,...row} : b); }
+    else { bookings.push({...row, id:crypto.randomUUID(), created_at:new Date().toISOString()}); }
+    localStorage.setItem('bism_v1', JSON.stringify(bookings));
+    loadLocal();
+  } else {
+    if (editId) { await db.from('bookings').update(row).eq('id', editId); }
+    else        { await db.from('bookings').insert(row); }
+    await fetchDB();
+  }
+  closeModal();
+  toast(editId ? '✅ ההזמנה עודכנה!' : '🔥 האימון נרשם!');
+}
+
+/* ── מחיקה ── */
+async function doDelete() {
+  if (!editId) return;
+  if (DEMO) {
+    bookings = bookings.filter(b => b.id !== editId);
+    localStorage.setItem('bism_v1', JSON.stringify(bookings));
+    loadLocal();
+  } else {
+    await db.from('bookings').delete().eq('id', editId);
+    await fetchDB();
+  }
+  closeModal(); toast('ההזמנה נמחקה');
+}
+
+/* ── פעולות ── */
+function pickMe(u)  {
+  me = u; mMe = u;
+  buildUserCards('userList', false);
+}
+function pickMMe(u) {
+  mMe = u;
+  buildUserCards('mUserCards', true);
+  updateAccent();
+}
+function pickDay(i) {
+  dayIdx = i;
+  document.querySelectorAll('.dtab').forEach((t,idx) =>
+    t.classList.toggle('active', idx===i)
+  );
+  buildDay();
+}
+function shiftWeek(d) {
+  weekSun = new Date(weekSun); weekSun.setDate(weekSun.getDate()+d*7); buildWeek();
+}
+function goToday()  {
+  weekSun = getSunday(new Date()); dayIdx = new Date().getDay(); buildWeek();
+}
+
+/* ── בדיקת חפיפה ── */
+function findClash(date, start, duration, excId) {
+  const s = toMin(start), e = s + duration;
+  return bookings.find(b =>
+    b.date===date && b.id!==excId &&
+    toMin(b.start_time) < e &&
+    toMin(b.start_time)+b.duration_minutes > s
+  );
+}
+
+/* ── עזרים ── */
+function getSunday(d) {
+  const x = new Date(d); x.setDate(x.getDate()-x.getDay()); x.setHours(0,0,0,0); return x;
+}
+function wkDays(sun) {
+  return Array.from({length:7}, (_,i) => { const d=new Date(sun); d.setDate(sun.getDate()+i); return d; });
+}
+function fmtD(d)   { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function pad(n)    { return String(n).padStart(2,'0'); }
+function toMin(t)  { const [h,m]=t.split(':').map(Number); return h*60+m; }
+function toTime(m) { return `${pad(Math.floor(m/60))}:${pad(m%60)}`; }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+boot();
+</script>
+</body>
+</html>
