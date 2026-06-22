@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0d0d12">
   <title>Bismuth Gym 💪</title>
-  <link rel="preload" as="image" href="bg.webp" type="image/webp">
-  <link rel="preload" as="image" href="stav.webp" type="image/webp">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -510,7 +508,7 @@
 
 <!-- ══ Background ══ -->
 <div class="bg">
-  <img src="bg.webp" alt="Bismuth Gym" onerror="this.src='IMG_2822.JPG'" loading="eager" fetchpriority="high">
+  <img src="IMG_2822.JPG" alt="Bismuth Gym" onerror="this.closest('.bg').style.background='linear-gradient(135deg,#1a0533 0%,#0d1117 100%)'">
 </div>
 
 <div class="page">
@@ -646,11 +644,11 @@ const COLORS = {
   'אליס': '#f43f5e',   /* אדום-ורוד */
 };
 const PHOTOS = {
-  'סתיו': 'stav.webp',
-  'מאי':  'may.webp',
-  'משה':  'moshe.webp',
-  'יאן':  'yan.webp',
-  'אליס': 'alice.webp',
+  'סתיו': 'stav.png',
+  'מאי':  'may.png',
+  'משה':  'moshe.png',
+  'יאן':  'yan.png',
+  'אליס': 'alice.png',
 };
 
 const HOURS = Array.from({length:17}, (_,i) => 6 + i); /* 06:00–22:00 */
@@ -707,7 +705,7 @@ function buildUserCards(containerId, isModal) {
     const imgCls  = isModal ? 'mucard-img' : 'ucard-img';
     const nameCls = isModal ? 'mucard-name' : 'ucard-name';
     return `<div class="${cls}${sel?' sel':''}" onclick="${fn}" style="--uc:${c}">
-      <div class="${ringCls}"><img class="${imgCls}" src="${ph}" alt="${u}" decoding="async" onerror="this.style.display='none'"></div>
+      <div class="${ringCls}"><img class="${imgCls}" src="${ph}" alt="${u}" onerror="this.style.display='none'"></div>
       <span class="${nameCls}">${u}</span>
     </div>`;
   }).join('');
@@ -764,7 +762,7 @@ function buildDay() {
         const ph  = PHOTOS[b.user_name] || '';
         html += `<div class="bk" style="--bc:${c}"
           onclick="event.stopPropagation();openEdit('${b.id}')">
-          ${ph ? `<img class="bk-avatar" src="${ph}" alt="${b.user_name}" loading="lazy" decoding="async" onerror="this.style.display='none'">` : ''}
+          ${ph ? `<img class="bk-avatar" src="${ph}" alt="${b.user_name}" onerror="this.style.display='none'">` : ''}
           <div class="bk-info">
             <div class="bk-name">${b.user_name}</div>
             <div class="bk-meta">${b.start_time.slice(0,5)} – ${end} · ${b.duration_minutes} דק׳</div>
