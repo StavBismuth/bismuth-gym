@@ -644,11 +644,11 @@ const COLORS = {
   'אליס': '#f43f5e',   /* אדום-ורוד */
 };
 const PHOTOS = {
-  'סתיו': 'stav.png',
-  'מאי':  'may.png',
-  'משה':  'moshe.png',
-  'יאן':  'yan.png',
-  'אליס': 'alice.png',
+  'סתיו': 'stav.webp',
+  'מאי':  'may.webp',
+  'משה':  'moshe.webp',
+  'יאן':  'yan.webp',
+  'אליס': 'alice.webp',
 };
 
 const HOURS = Array.from({length:17}, (_,i) => 6 + i); /* 06:00–22:00 */
@@ -705,7 +705,7 @@ function buildUserCards(containerId, isModal) {
     const imgCls  = isModal ? 'mucard-img' : 'ucard-img';
     const nameCls = isModal ? 'mucard-name' : 'ucard-name';
     return `<div class="${cls}${sel?' sel':''}" onclick="${fn}" style="--uc:${c}">
-      <div class="${ringCls}"><img class="${imgCls}" src="${ph}" alt="${u}" onerror="this.style.display='none'"></div>
+      <div class="${ringCls}"><img class="${imgCls}" src="${ph}" alt="${u}" loading="lazy" decoding="async" onerror="this.style.display='none'"></div>
       <span class="${nameCls}">${u}</span>
     </div>`;
   }).join('');
