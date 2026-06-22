@@ -245,6 +245,7 @@
       transition: background 0.12s;
     }
     .trow:active { background: rgba(255,255,255,0.05); }
+    .trow-covered { min-height: 0 !important; height: 0 !important; overflow: hidden; padding: 0; border: none; }
     .trow-t {
       width: 48px; flex-shrink: 0;
       font-size: 12px; font-weight: 700;
@@ -751,6 +752,14 @@ function buildDay() {
 
   for (const tStr of SLOTS) {
     const slotMin = toMin(tStr);
+
+    /* slot covered by a booking that started earlier → collapse it */
+    const covered = dayBks.some(b =>
+      toMin(b.start_time) < slotMin &&
+      toMin(b.start_time) + b.duration_minutes > slotMin
+    );
+    if (covered) { html += `<div class="trow trow-covered"></div>`; continue; }
+
     const hBks = dayBks.filter(b =>
       toMin(b.start_time) >= slotMin && toMin(b.start_time) < slotMin + 30
     );
@@ -761,12 +770,13 @@ function buildDay() {
 
     if (hBks.length) {
       hBks.forEach(b => {
-        const c   = COLORS[b.user_name] || '#818cf8';
-        const end = toTime(toMin(b.start_time) + b.duration_minutes);
-        const ph  = PHOTOS[b.user_name] || '';
-        html += `<div class="bk" style="--bc:${c}"
+        const c      = COLORS[b.user_name] || '#818cf8';
+        const end    = toTime(toMin(b.start_time) + b.duration_minutes);
+        const ph     = PHOTOS[b.user_name] || '';
+        const spanPx = Math.max(1, b.duration_minutes / 30) * 48 - 4;
+        html += `<div class="bk" style="--bc:${c}; min-height:${spanPx}px; align-items:flex-start"
           onclick="event.stopPropagation();openEdit('${b.id}')">
-          ${ph ? `<img class="bk-avatar" src="${ph}" alt="${b.user_name}" onerror="this.style.display='none'">` : ''}
+          ${ph ? `<img class="bk-avatar" src="${ph}" alt="${b.user_name}" loading="lazy" decoding="async" onerror="this.style.display='none'">` : ''}
           <div class="bk-info">
             <div class="bk-name">${b.user_name}</div>
             <div class="bk-meta">${b.start_time.slice(0,5)} – ${end} · ${b.duration_minutes} דק׳</div>
