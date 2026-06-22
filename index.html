@@ -238,7 +238,7 @@
     .trow {
       display: flex; align-items: flex-start;
       padding: 0 14px 0 10px;
-      min-height: 56px;
+      min-height: 48px;
       border-bottom: 1px solid rgba(255,255,255,0.035);
       cursor: pointer;
       background: rgba(0,0,0,0.18);
@@ -651,7 +651,11 @@ const PHOTOS = {
   'אליס': 'alice.webp',
 };
 
-const HOURS = Array.from({length:17}, (_,i) => 6 + i); /* 06:00–22:00 */
+const SLOTS = [];
+for (let h = 6; h <= 22; h++) {
+  SLOTS.push(pad(h) + ':00');
+  if (h < 22) SLOTS.push(pad(h) + ':30');
+} /* 06:00, 06:30, 07:00 … 21:30, 22:00 */
 
 /* ── מצב ── */
 let me       = '';
@@ -745,10 +749,10 @@ function buildDay() {
 
   let html = `<div class="dv-hdr">${lbl}</div>`;
 
-  for (const h of HOURS) {
-    const tStr = pad(h) + ':00';
+  for (const tStr of SLOTS) {
+    const slotMin = toMin(tStr);
     const hBks = dayBks.filter(b =>
-      toMin(b.start_time) >= h*60 && toMin(b.start_time) < (h+1)*60
+      toMin(b.start_time) >= slotMin && toMin(b.start_time) < slotMin + 30
     );
 
     html += `<div class="trow" onclick="${hBks.length ? '' : `openNew('${tStr}')`}">
